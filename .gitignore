@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+# Scan output, never commit (it lists your file paths)
+file-cleaner-report*.json
+file-cleaner-report*.txt
+file-cleaner-quarantine-*/
+file-cleaner-log-*.json
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store
