@@ -7,6 +7,7 @@ file-cleaner-report*.json
 file-cleaner-report*.txt
 file-cleaner-quarantine-*/
 file-cleaner-log-*.json
+file-cleaner-deleted-*.jsonl
 *.log
 Thumbs.db
 desktop.ini
