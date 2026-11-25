@@ -33,7 +33,7 @@ class FileCleanerTest(unittest.TestCase):
         write(os.path.join(self.data, "keep", "notes.txt"), small)  # will be protected
         write(os.path.join(self.data, "unique.txt"), b"only one of me")
         write(os.path.join(self.data, "broken.pdf"), b"\0" * 8192)  # zero-filled
-        write(os.path.join(self.data, "cut.jpg"), b"\xff\xd8\xff\xe0" + os.urandom(5000))  # no end marker
+        write(os.path.join(self.data, "cut.jpg"), b"\xff\xd8\xff\xe0" + bytes(range(1, 251)) * 20)  # no end marker
         write(os.path.join(self.data, "good.jpg"), b"\xff\xd8\xff\xe0" + b"x" * 500 + b"\xff\xd9")
         self.report = os.path.join(self.tmp, "report.json")
         self.quar = os.path.join(self.tmp, "quarantine")
