@@ -1,107 +1,116 @@
-# file-cleaner
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+  <img src="assets/banner-light.svg" alt="file-cleaner. Find duplicate and damaged files. Never lose the last copy." width="100%">
+</picture>
 
-Find duplicate files and damaged files in a folder, then remove the duplicates safely.
+[![tests](https://github.com/zed-dz/file-cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/zed-dz/file-cleaner/actions/workflows/ci.yml)
 
-- **Duplicates** are found by content, not by name. Two files count as copies only if every byte matches.
-- **Damaged files** are files that look normal but will not open: files filled with zero bytes after a bad sync, PDFs and JPGs cut short, Office and ZIP files that cannot be read, wrong file headers.
-- The scan only reads. Removing duplicates is a separate step, a dry run by default, and moves files to a quarantine folder instead of deleting them.
+**Get space back from duplicate files, and put everything back if you change your mind.**
+
+![Terminal: scan a folder, dry run, move 3 copies aside, then restore all 3](assets/demo.gif)
 
 ## Who it is for
 
-Anyone with a drive full of copies from years of downloads, backups and cloud sync, who wants space back without the risk of losing the only copy of something.
+- You have years of downloads, backups and phone photos on one drive.
+- You want the space back, and you are scared of deleting the only copy.
+- You do not want to install an app or upload anything.
 
-## Requirements
+## Install
 
-- Python 3.8 or newer. Nothing else: it uses only the Python standard library.
-- Works on Windows, macOS and Linux.
+You need [Python](https://www.python.org/downloads/) 3.9 or newer. It is one file and it needs nothing else.
 
-## Download
-
-[Download the ZIP](https://github.com/zed-dz/file-cleaner/archive/refs/heads/main.zip) and unzip it.
-
-## How to use
-
-### 1. Scan (read-only)
-
-```
+```sh
+curl.exe -LO https://github.com/zed-dz/file-cleaner/releases/latest/download/file_cleaner.py
 python file_cleaner.py scan "D:\Photos"
 ```
 
-This writes two files in the current folder:
+That is for Windows. On macOS and Linux, type `curl`, `python3` and a path like `~/Photos`.
 
-- `file-cleaner-report.json`: the full result, used by the delete step.
-- `file-cleaner-report.txt`: a readable summary with the biggest duplicate groups and every damaged file.
+## What it does
 
-Options:
+**1. Scan.** It only reads. It writes a report you can open.
 
-```
-python file_cleaner.py scan "D:\Photos" --report photos.json
-python file_cleaner.py scan "D:\Photos" --protect "D:\Photos\Originals"
-python file_cleaner.py scan "D:\Photos" --skip "D:\Photos\cache"
+```sh
+python file_cleaner.py scan "D:\Photos"
 ```
 
-- `--protect PATH` scans a folder but never removes anything from it. A protected copy is always the one kept. Repeat it for several folders.
-- `--skip PATH` does not scan a folder at all.
-- `--workers N` sets how many files are read at the same time (default 8).
+**2. Dry run.** It lists each copy it would remove, and the copy it keeps. Nothing moves.
 
-Files inside `.git` folders are never offered for removal.
-
-### 2. Dry run (still changes nothing)
-
-```
+```sh
 python file_cleaner.py delete --report file-cleaner-report.json
 ```
 
-It lists every copy it would remove and the copy it would keep.
+**3. Move the copies aside.** They go to a quarantine folder. Nothing is deleted.
 
-### 3. Remove duplicates
-
-```
+```sh
 python file_cleaner.py delete --report file-cleaner-report.json --apply
 ```
 
-Each removed copy is moved to a quarantine folder next to the report (`file-cleaner-quarantine-<date>`), keeping its folder structure. A JSON log of every move is saved in the same folder.
+**4. Put them back**, if you want. First without `--apply` to look, then with it.
 
-Options:
-
-- `--quarantine DIR` picks the quarantine folder. It must be outside the scanned folder.
-- `--keep shortest|oldest|newest` picks which copy to keep (default: the shortest path).
-- `--protect PATH` adds more folders that are never touched.
-- `--hard` deletes for good instead of moving to quarantine. Only works together with `--apply`.
-
-## Safety notes
-
-- **The scan never changes a file.** It writes only the report and the summary.
-- **Delete is a dry run** unless you add `--apply`.
-- **Never the last copy.** In every group one copy is kept, and the tool checks it still exists after the run.
-- **Checked again right before acting.** Each copy is compared byte for byte with the kept copy just before it is moved. If a file changed since the scan, or the kept copy is gone, it is skipped.
-- **Damaged files are only reported, never removed.** Check them by hand: a file full of zero bytes has lost its content, and the only fix is an older backup or the cloud copy.
-- Hard links to the same file are skipped.
-- Empty files are listed in the report but not removed.
-
-## How to undo
-
-Quarantined files are still on disk. To restore them, move them back from the quarantine folder. The folder keeps the original structure relative to the scanned folder, and the log file lists each file's original path. When you are sure, delete the quarantine folder.
-
-Files removed with `--hard` cannot be restored by this tool.
-
-## How it works
-
-1. Files are grouped by exact size. A file with a unique size cannot have a copy, so it is never hashed.
-2. Files that share a size get a quick SHA-256 hash of their first 64 KB.
-3. Files that still match get a full SHA-256 hash. Same hash means same content.
-4. Each checked file type (PDF, JPG, PNG, GIF, WEBP, MP4/MOV, ZIP, DOCX, XLSX, PPTX and common text files) is checked at its start and its end.
-
-## Tests
-
+```sh
+python file_cleaner.py restore --from file-cleaner-quarantine-20261125-101500 --apply
 ```
+
+When you are sure, delete the quarantine folder yourself. That is when the space comes back.
+
+It also lists **damaged files**: full of zero bytes after a bad sync, PDFs and JPGs cut short, Office and ZIP files that do not open. It never removes those.
+
+| Option | What it does |
+|---|---|
+| `--protect PATH` | Scan this folder but never remove from it. Its copy is the one kept. Repeat it for more folders. |
+| `--skip PATH` | Do not scan this folder at all. |
+| `--keep shortest\|oldest\|newest` | Which copy to keep. Default: the shortest path. |
+| `--quarantine DIR` | Where removed copies go. It must be outside the scanned folder. |
+| `--report FILE` | Name of the report. |
+| `--workers N` | How many files are read at the same time. Default 8. |
+| `--hard` | Delete for good. Needs `--apply`. This cannot be undone. |
+
+## Safety and privacy
+
+- **Same content, not same name.** Two files are copies only if every byte matches.
+- **Checked twice.** Each copy is compared byte for byte with the kept file right before it moves. If either one changed, it is skipped.
+- **The last copy stays.** A copy in the recycle bin, a trash folder, a cache or an old quarantine never counts as the copy to keep.
+- **Left alone:** Git projects, `node_modules`, Windows and program folders, photo library bundles, hard links, and online-only cloud files.
+- **Links are not followed.** Symbolic links and Windows junctions cannot lead it out of your folder.
+- **A crash can be undone.** The log is written one line at a time.
+- **It never writes over your files.** Not with the report, not when it restores.
+- **No network.** It has no code that goes online. Read it: one Python file, no other packages.
+
+There are 38 tests. Most of them try to make it lose a file. Run them yourself:
+
+```sh
+git clone https://github.com/zed-dz/file-cleaner
+cd file-cleaner
 python -m unittest discover -s tests -v
 ```
 
+## How it compares
+
+I read these projects' own pages on 25 November 2026.
+
+| | file-cleaner | [Czkawka / Krokiet](https://github.com/qarmin/czkawka) | [dupeGuru](https://github.com/arsenetar/dupeguru) | [fdupes](https://github.com/adrianlopezroche/fdupes) |
+|---|---|---|---|---|
+| Window to click in | no | yes | yes | no |
+| Similar images and videos | no | yes | pictures | no |
+| Finds damaged files | some types | yes, more types | no | no |
+| Written in | Python, one file | Rust | Python and Qt | C |
+| Command that puts files back | yes | I found none | I found none | I found none |
+
+If you want a window, similar photos or more speed, use Krokiet. It is very good. Use file-cleaner if you want something small you can read, with an undo.
+
+## Limits
+
+- Exact copies only. Two sizes of the same photo are two different files to it.
+- The damage check looks at the start and the end of a file. It can miss damage in the middle. Some phone "motion" photos can be listed by mistake.
+- It does not free space by itself. Quarantine moves files. You delete the folder.
+- If you scan a whole drive, quarantine needs another drive. Files are then copied, checked, and removed from the first one. Windows alternate data streams are not carried across.
+- No window, no scheduler.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md). If you found a way to make it lose a file, see [SECURITY.md](SECURITY.md).
+
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
-
----
-
-Made by Amine Hammou. Custom tools: https://aminehammou.vercel.app/tools.html
+[MIT](LICENSE). Made by Amine Hammou. More tools: https://aminehammou.vercel.app/tools.html

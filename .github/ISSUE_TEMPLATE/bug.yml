@@ -1,0 +1,13 @@
+name: Something went wrong
+description: Tell me what happened.
+labels: [bug]
+body:
+  - type: input
+    attributes: {label: Your system and Python version, placeholder: "Windows 11, Python 3.12"}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What you typed and what it printed, description: Change private file names first., render: text}
+    validations: {required: true}
+  - type: dropdown
+    attributes: {label: "Did you lose a file?", options: ["No", "Yes, it is in quarantine", "Yes, it is gone"]}
+    validations: {required: true}
