@@ -239,10 +239,24 @@ def sniff(path, ext, size):
                 tail = f.read()
             else:
                 tail = head
+            if not head.strip(b"\0") and not tail.strip(b"\0"):
+                return "starts and ends with zero bytes (content lost, often sync damage)"
+            if ext in (".jpg", ".jpeg"):
+                if not head.startswith(b"\xff\xd8"):
+                    return "JPG header wrong"
+                end_marker = b"\xff\xd9"
+                if end_marker in tail or end_marker in head:
+                    return None
+                # Motion photos can have video data after the JPEG end marker.
+                f.seek(len(head))
+                previous = head[-1:]
+                for chunk in iter(lambda: f.read(CHUNK), b""):
+                    if end_marker in previous + chunk:
+                        return None
+                    previous = chunk[-1:]
+                return "JPG end missing (file cut short)"
     except OSError as e:
         return f"cannot read ({e.__class__.__name__})"
-    if not head.strip(b"\0") and not tail.strip(b"\0"):
-        return "starts and ends with zero bytes (content lost, often sync damage)"
     if ext == ".pdf":
         if b"%PDF" not in head[:1024]:
             return "PDF header missing"
@@ -250,11 +264,6 @@ def sniff(path, ext, size):
             return "PDF end missing (file cut short)"
     elif ext == ".png" and not head.startswith(b"\x89PNG\r\n\x1a\n"):
         return "PNG header wrong"
-    elif ext in (".jpg", ".jpeg"):
-        if not head.startswith(b"\xff\xd8"):
-            return "JPG header wrong"
-        if b"\xff\xd9" not in tail:
-            return "JPG end missing (file cut short)"
     elif ext == ".gif" and head[:4] != b"GIF8":
         return "GIF header wrong"
     elif ext == ".webp" and not (head[:4] == b"RIFF" and head[8:12] == b"WEBP"):
